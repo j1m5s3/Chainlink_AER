@@ -1,0 +1,19 @@
+type = "directrequest"
+schemaVersion = 1
+name = "crypto_price_external_adapter_TEST_Version1.4"
+contractAddress = "0x0F00Eb45845692a73D7661266bD0BCF452bD9f0A"
+maxTaskDuration = "0s"
+observationSource = """
+  decode_log   [type="ethabidecodelog" abi="OracleRequest(bytes32 indexed specId, address requester, bytes32 requestId, uint256 payment, address callbackAddr, bytes4    callbackFunctionId, uint256 cancelExpiration, uint256 dataVersion, bytes data)" data="$(jobRun.logData)" topics="$(jobRun.logTopics)"]
+
+  decode_cbor  [type="cborparse" data="$(decode_log.data)"]
+
+  send_to_bridge [type="bridge"  name="test_price_feed_api" requestData="{ \\"data\\": {\\"crypto\\": $(decode_cbor.crypto), \\"fiat\\":  $(decode_cbor.fiat)}}"]
+  parse       [type="jsonparse" data="$(send_to_bridge)" path="price"]
+  multiply     [type="multiply" input="$(parse)" times=100]
+  encode_data [type="ethabiencode" abi="(uint256 price)", data="{\\"price\\": $(multiply)}"]
+  encode_tx   [type="ethabiencode" abi="fulfillOracleRequest(bytes32 requestId, uint256 payment, address callbackAddress, bytes4 callbackFunctionId, uint256 expiration,bytes32 data)" data="{\\"requestId\\": $(decode_log.requestId), \\"payment\\": $(decode_log.payment), \\"callbackAddress\\": $(decode_log.callbackAddr),\\"callbackFunctionId\\": $(decode_log.callbackFunctionId), \\"expiration\\": $(decode_log.cancelExpiration), \\"data\\": $(encode_data)}"]
+  submit_tx [type="ethtx" to="0x0F00Eb45845692a73D7661266bD0BCF452bD9f0A" data="$(encode_tx)"]
+  decode_log -> decode_cbor -> send_to_bridge -> parse -> multiply -> encode_data -> encode_tx -> submit_tx
+"""
+externalJobID = "96622e8f-1efd-4287-b363-95f235c770be"

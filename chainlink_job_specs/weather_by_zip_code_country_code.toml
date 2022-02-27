@@ -1,0 +1,16 @@
+type = "directrequest"
+schemaVersion = 1
+name = "weatherByZipCodeCountryCode"
+contractAddress = "0x4589Fa78352B1632A2A6430C945027bd56902630" # Oracle address
+maxTaskDuration = "0s"
+observationSource = """
+  decode_log   [type="ethabidecodelog" abi="OracleRequest(bytes32 indexed specId, address requester, bytes32 requestId, uint256 payment, address callbackAddr, bytes4    callbackFunctionId, uint256 cancelExpiration, uint256 dataVersion, bytes data)" data="$(jobRun.logData)" topics="$(jobRun.logTopics)"]
+  decode_cbor  [type="cborparse" data="$(decode_log.data)"]
+  send_to_bridge [type="bridge"  name="weather_api" requestData="{ \\"data\\": {\\"zip_code\\": $(decode_cbor.zip_code), \\"country_code\\": $(decode_cbor.country_code), \\"field\\": $(decode_cbor.field)}}"]
+  parse       [type="jsonparse" data="$(send_to_bridge)" path="result"]
+  multiply     [type="multiply" input="$(parse)" times=100]
+  encode_data [type="ethabiencode" abi="(uint256 result)", data="{\\"result\\": $(multiply)}"]
+  encode_tx   [type="ethabiencode" abi="fulfillOracleRequest(bytes32 requestId, uint256 payment, address callbackAddress, bytes4 callbackFunctionId, uint256 expiration,bytes32 data)" data="{\\"requestId\\": $(decode_log.requestId), \\"payment\\": $(decode_log.payment), \\"callbackAddress\\": $(decode_log.callbackAddr),\\"callbackFunctionId\\": $(decode_log.callbackFunctionId), \\"expiration\\": $(decode_log.cancelExpiration), \\"data\\": $(encode_data)}"]
+  submit_tx [type="ethtx" to="0x4589Fa78352B1632A2A6430C945027bd56902630" data="$(encode_tx)"]
+  decode_log -> decode_cbor -> send_to_bridge -> parse -> multiply -> encode_data -> encode_tx -> submit_tx
+"""

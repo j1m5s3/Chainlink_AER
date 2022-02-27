@@ -127,3 +127,29 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# Local ignores #
+##############################################
+# Folders #
+##############
+**/__pycache__/
+**/users/
+**/jobs/
+**/brownie
+**/chainlink_adapter_bridges_templates/
+**/fronend_test0/
+**/node_modules/
+**/request_records/
+
+# Filetypes #
+##############
+*.pyc
+*.csv
+
+# Files #
+##############
+**/.pytest_cache
+**/.eggs
+**/*.egg-info
+**.cache
